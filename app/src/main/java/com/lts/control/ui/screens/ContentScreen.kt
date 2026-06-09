@@ -542,39 +542,13 @@ private fun formatSeconds(s: Int): String {
     return if (m > 0) "%d:%02d".format(m, r) else "${r}s"
 }
 
-/* Simple Symbol Aliases */
+/* Simple Symbol Aliases (直接使用 Material Icons) */
 private object Symbols {
-    val Antenna = Icons.DefaultSignal
-    val AntennaSlash = Icons.DefaultSignalSlash
-    val CheckCircle = Icons.DefaultCheck
-    val XCircle = Icons.DefaultX
-    val Thermo = Icons.DefaultThermo
-    val ThermoHigh = Icons.DefaultThermoHigh
-    val Fan = Icons.DefaultFan
-}
-
-private object Icons {
-    val DefaultSignal: ImageVector
-        get() = materialPathIcon { moveTo(0f,0f); lineTo(0f,0f) }
-    val DefaultSignalSlash: ImageVector
-        get() = materialPathIcon { moveTo(0f,0f); lineTo(0f,0f) }
-    val DefaultCheck: ImageVector
-        get() = materialPathIcon { moveTo(0f,0f); lineTo(0f,0f) }
-    val DefaultX: ImageVector
-        get() = materialPathIcon { moveTo(0f,0f); lineTo(0f,0f) }
-    val DefaultThermo: ImageVector
-        get() = materialPathIcon { moveTo(0f,0f); lineTo(0f,0f) }
-    val DefaultThermoHigh: ImageVector
-        get() = materialPathIcon { moveTo(0f,0f); lineTo(0f,0f) }
-    val DefaultFan: ImageVector
-        get() = materialPathIcon { moveTo(0f,0f); lineTo(0f,0f) }
-}
-
-private fun materialPathIcon(builder: androidx.compose.ui.graphics.vector.PathBuilder.() -> Unit): ImageVector {
-    return ImageVector.Builder(
-        defaultWidth = 24.dp, defaultHeight = 24.dp,
-        viewportWidth = 24f, viewportHeight = 24f
-    ).apply {
-        path { moveTo(0f, 0f) }
-    }.build()
+    val Antenna = Icons.Default.SignalCellularConnectedNoInternet0Bar
+    val AntennaSlash = Icons.Default.SignalCellularConnectedNoInternet0Bar
+    val CheckCircle = Icons.Default.Check
+    val XCircle = Icons.Default.Close
+    val Thermo = Icons.Default.Thermostat
+    val ThermoHigh = Icons.Default.Whatshot
+    val Fan = Icons.Default.Air
 }
