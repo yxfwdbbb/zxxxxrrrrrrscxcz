@@ -33,11 +33,9 @@ android {
         targetCompatibility = JavaVersion.VERSION_1_8
     }
 
-    // ✅ 关键修复：使用 compilerOptions DSL
     kotlin {
         compilerOptions {
             jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8
-            freeCompilerArgs.addAll(listOf("-Xjvm-default=all-compatibility"))
         }
     }
 }
