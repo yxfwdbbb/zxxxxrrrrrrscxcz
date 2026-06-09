@@ -43,7 +43,6 @@ fun ConnectionScreen(
     val deviceState by vm.deviceState.collectAsState()
     val connection by vm.connection.collectAsState()
 
-    // iOS-States
     var wifiSsid by remember { mutableStateOf("") }
     var wifiPassword by remember { mutableStateOf("") }
     var isConnecting by remember { mutableStateOf(false) }
@@ -51,25 +50,22 @@ fun ConnectionScreen(
     var wiggleWifi by remember { mutableStateOf(false) }
     var bounceWifi by remember { mutableStateOf(false) }
 
-    // SSIDs aus Firmware-Events
     var ssids by remember { mutableStateOf(listOf<String>()) }
     var isScanning by remember { mutableStateOf(false) }
-    var scanSessionId by remember { mutableStateOf(0) } // nur für Recompose-Key analog iOS
+    var scanSessionId by remember { mutableStateOf(0) }
 
-    // Firmware-Messages konsumieren (SSID_LIST, WIFI_CONN_RESULT)
     LaunchedEffect(Unit) {
         vm.messages.collectLatest { msg ->
             when (msg) {
                 is com.lts.control.core.ble.model.IncomingMessage.WifiScan -> {
                     ssids = msg.ssids.distinct().map { it.trim() }.filter { it.isNotEmpty() }
                     isScanning = false
-                    scanSessionId++ // Picker refresh
+                    scanSessionId++
                 }
                 is com.lts.control.core.ble.model.IncomingMessage.WifiConnectResult -> {
                     isConnecting = false
                     if (msg.ok) {
                         bounceWifi = !bounceWifi
-                        // Passwort wie in iOS leeren
                         wifiPassword = ""
                     } else {
                         wiggleWifi = !wiggleWifi
@@ -85,13 +81,11 @@ fun ConnectionScreen(
         }
     }
 
-    // Wenn WiFi connected meldet, Verbindungsvorgang beenden
     val isBleConnected = status != null
     val isWifiConnected = isBleConnected && (status?.wifiConnected == true)
     LaunchedEffect(isWifiConnected) {
         if (isWifiConnected) isConnecting = false
     }
-    // Bei BLE-Disconnect SSID zurücksetzen (analog Swift)
     LaunchedEffect(isBleConnected) {
         if (!isBleConnected) {
             wifiSsid = ""
@@ -108,11 +102,11 @@ fun ConnectionScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Verbindung") },
+                title = { Text("连接") },
                 navigationIcon = {
                     if (onBack != null) {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.Filled.ArrowBack, contentDescription = "Zurück")
+                            Icon(Icons.Filled.ArrowBack, contentDescription = "返回")
                         }
                     }
                 },
@@ -124,7 +118,7 @@ fun ConnectionScreen(
                             vm.wifiScan()
                         }
                     ) {
-                        Icon(Icons.Filled.Refresh, contentDescription = "Netzwerk-Scan")
+                        Icon(Icons.Filled.Refresh, contentDescription = "扫描网络")
                     }
                 }
             )
@@ -136,7 +130,7 @@ fun ConnectionScreen(
                 .padding(padding)
                 .padding(bottom = 8.dp)
         ) {
-            // -------------------------- Status-Header (Capsules) --------------------------
+            // -------------------------- 状态胶囊 --------------------------
             Row(
                 Modifier
                     .fillMaxWidth()
@@ -145,19 +139,30 @@ fun ConnectionScreen(
             ) {
                 Capsule(
                     modifier = Modifier.weight(1f),
-                    icon = { Icon(Icons.Filled.Bluetooth, contentDescription = null, tint = if (isBleConnected) Color.Cyan else LocalContentColor.current) },
-                    title = "Bluetooth",
-                    subtitle = if (isBleConnected) "Verbunden" else "Getrennt"
+                    icon = {
+                        Icon(
+                            Icons.Filled.Bluetooth,
+                            contentDescription = null,
+                            tint = if (isBleConnected) Color.Cyan else LocalContentColor.current
+                        )
+                    },
+                    title = "蓝牙",
+                    subtitle = if (isBleConnected) "已连接" else "未连接"
                 )
+
                 val wifiScale by animateFloatAsState(
                     targetValue = when {
                         showWifiError -> 1.08f
                         bounceWifi -> 1.10f
                         else -> 1f
                     },
-                    animationSpec = tween(220, easing = if (bounceWifi) LinearOutSlowInEasing else FastOutLinearInEasing),
+                    animationSpec = tween(
+                        220,
+                        easing = if (bounceWifi) LinearOutSlowInEasing else FastOutLinearInEasing
+                    ),
                     label = "wifiScale"
                 )
+
                 Capsule(
                     modifier = Modifier.weight(1f).scale(wifiScale),
                     icon = {
@@ -168,61 +173,58 @@ fun ConnectionScreen(
                         }
                         Icon(Icons.Filled.Wifi, contentDescription = null, tint = tint)
                     },
-                    title = "WLAN",
+                    title = "无线局域网",
                     subtitle = when {
-                        showWifiError -> "Fehler!"
-                        isBleConnected && isWifiConnected -> "Verbunden"
-                        else -> "Getrennt"
+                        showWifiError -> "错误！"
+                        isBleConnected && isWifiConnected -> "已连接"
+                        else -> "未连接"
                     }
                 )
             }
 
-            // ----------------------------------- WLAN -----------------------------------
-            SettingsGroupHeader("WLAN")
+            // ----------------------------- Wi‑Fi 设置 -----------------------------
+            SettingsGroupHeader("无线局域网")
             Text(
-                "Für die WLAN-Verbindung hier nach verfügbaren Netzwerken suchen und das Passwort eingeben. Funktioniert nur mit 2,4 GHz Netzwerken.",
-                style = MaterialTheme.typography.bodySmall, color = Color.Gray,
+                "要连接无线网络，请在此搜索可用网络并输入密码。仅支持 2.4 GHz 网络。",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.Gray,
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
             Spacer(Modifier.height(8.dp))
+
             Card(
-                Modifier
-                    .padding(horizontal = 16.dp)
-                    .fillMaxWidth(),
+                Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
                 shape = RoundedCornerShape(16),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Column(Modifier.padding(14.dp)) {
-                    // SSID Picker / Loader
+                    // SSID 选择
                     Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 48.dp),
+                        Modifier.fillMaxWidth().heightIn(min = 48.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Netzwerk", Modifier.weight(1f))
+                        Text("网络", Modifier.weight(1f))
                         if (isScanning) {
                             CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                         } else {
                             var expanded by remember(scanSessionId) { mutableStateOf(false) }
-                            val items = ssids
                             Text(
-                                if (wifiSsid.isBlank()) "Auswählen (${items.size})" else wifiSsid,
+                                if (wifiSsid.isBlank()) "选择网络 (${ssids.size})" else wifiSsid,
                                 color = Color.Gray,
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(8.dp))
-                                    .clickable(enabled = items.isNotEmpty()) { expanded = true }
+                                    .clickable(enabled = ssids.isNotEmpty()) { expanded = true }
                                     .padding(horizontal = 8.dp, vertical = 6.dp)
                             )
                             DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                                 DropdownMenuItem(
-                                    text = { Text("Auswählen (${items.size})") },
+                                    text = { Text("选择网络 (${ssids.size})") },
                                     onClick = {
                                         wifiSsid = ""
                                         expanded = false
                                     }
                                 )
-                                items.forEach { ssid ->
+                                ssids.forEach { ssid ->
                                     DropdownMenuItem(
                                         text = { Text(ssid) },
                                         onClick = {
@@ -235,34 +237,33 @@ fun ConnectionScreen(
                         }
                     }
 
-                    // Passwort
+                    // 密码输入
                     OutlinedTextField(
                         value = wifiPassword,
                         onValueChange = { wifiPassword = it },
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Passwort") },
+                        label = { Text("密码") },
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation()
                     )
 
                     Spacer(Modifier.height(10.dp))
+
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                         Button(
                             enabled = canSend,
                             onClick = {
                                 isConnecting = true
-                                // Analog iOS: erst Passwort, dann SSID, dann Connect-Trigger
                                 vm.wifiConnect(ssid = wifiSsid, pass = wifiPassword)
-                                // Passwort lokal löschen wie in Swift
                                 wifiPassword = ""
                             }
                         ) {
                             if (isConnecting) {
                                 CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                                 Spacer(Modifier.width(10.dp))
-                                Text("Verbinden…")
+                                Text("连接中…")
                             } else {
-                                Text("Zugangsdaten senden")
+                                Text("发送凭证")
                             }
                         }
                     }
@@ -271,18 +272,18 @@ fun ConnectionScreen(
 
             Spacer(Modifier.height(14.dp))
 
-            // -------------------------------- Bluetooth ---------------------------------
-            SettingsGroupHeader("Bluetooth")
+            // ----------------------------- 蓝牙设置 -----------------------------
+            SettingsGroupHeader("蓝牙")
             Text(
-                "Bei Verbindungsproblemen das gespeicherte Gerät entfernen und die Verbindung neu aufbauen.",
-                style = MaterialTheme.typography.bodySmall, color = Color.Gray,
+                "如果遇到连接问题，请移除已保存的设备并重新建立连接。",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.Gray,
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
             Spacer(Modifier.height(8.dp))
+
             Card(
-                Modifier
-                    .padding(horizontal = 16.dp)
-                    .fillMaxWidth(),
+                Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
                 shape = RoundedCornerShape(16),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
@@ -290,14 +291,18 @@ fun ConnectionScreen(
                     Button(
                         onClick = { vm.startScan() },
                         enabled = connection !is BleManager.ConnectionState.Ready
-                    ) { Text("Verbindung herstellen") }
+                    ) {
+                        Text("连接设备")
+                    }
 
                     Spacer(Modifier.height(8.dp))
 
                     TextButton(
                         onClick = { vm.disconnect() },
                         colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFD32F2F))
-                    ) { Text("Gespeichertes Gerät entfernen") }
+                    ) {
+                        Text("移除已保存的设备")
+                    }
                 }
             }
 
@@ -306,7 +311,7 @@ fun ConnectionScreen(
     }
 }
 
-/* --------------------------------- UI Bits -------------------------------- */
+/* ----------------------------- 复用组件 ----------------------------- */
 
 @Composable
 private fun Capsule(
@@ -333,7 +338,8 @@ private fun Capsule(
 
 @Composable private fun SettingsGroupHeader(text: String) {
     Text(
-        text, style = MaterialTheme.typography.titleSmall,
+        text,
+        style = MaterialTheme.typography.titleSmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(start = 16.dp, top = 14.dp, bottom = 6.dp)
     )
