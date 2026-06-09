@@ -34,6 +34,13 @@ import com.lts.control.core.ble.BleViewModel
 import com.lts.control.core.ble.model.DeviceState
 import kotlinx.coroutines.flow.collectLatest
 import kotlin.math.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.SignalCellularConnectedNoInternet0Bar
+import androidx.compose.material.icons.filled.Thermostat
+import androidx.compose.material.icons.filled.Whatshot
+import androidx.compose.material.icons.filled.Air
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
