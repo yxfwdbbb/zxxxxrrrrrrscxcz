@@ -4,6 +4,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.lifecycle.ViewModelProvider
 import com.lts.control.core.ble.BleViewModel
 import com.lts.control.ui.LtsControlApp
@@ -21,7 +24,13 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             LTSControlTheme {
-                LtsControlApp(vm)
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .safeDrawingPadding() // 修复手势导航 & 状态栏偏移
+                ) {
+                    LtsControlApp(vm)
+                }
             }
         }
     }
