@@ -1,17 +1,15 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.lts.control.ui.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.ui.res.painterResource
-
 import com.lts.control.R
-
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,18 +17,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.layout.onSizeChanged
@@ -38,9 +33,7 @@ import androidx.compose.ui.unit.IntSize
 import com.lts.control.core.ble.BleViewModel
 import com.lts.control.core.ble.model.DeviceState
 import kotlinx.coroutines.flow.collectLatest
-import kotlin.math.abs
-import kotlin.math.max
-import kotlin.math.min
+import kotlin.math.*
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
@@ -54,43 +47,38 @@ fun ContentScreen(
     val progress by vm.progressBarValue.collectAsState()
     val remaining by vm.remainingSeconds.collectAsState()
 
-    // iOS-Logik: wenn verbunden -> Splash schließen
     val isConnected = remember(status) { status != null }
     LaunchedEffect(isConnected) { if (isConnected) onDismissSplashIfConnected() }
 
-    // Lokaler Slider-State (nur bei Drag, danach persistieren)
     var localSpeed by remember { mutableFloatStateOf(max(50f, (status?.speedPercent ?: 80).toFloat())) }
     var isEditing by remember { mutableStateOf(false) }
     LaunchedEffect(status?.speedPercent) {
         if (!isEditing) localSpeed = max(50f, (status?.speedPercent ?: 80).toFloat())
     }
 
-    // Farben wie in Swift
     val isPaused = deviceState == DeviceState.PAUSED
     val isDone = deviceState == DeviceState.DONE
-    val isError = deviceState == DeviceState.AUTO_STOP // Rot für Auto-Stop
+    val isError = deviceState == DeviceState.AUTO_STOP
     val barColor = when {
         isError -> MaterialTheme.colorScheme.error
-        isDone  -> Color(0xFF2ECC71)
-        isPaused-> Color(0xFFFFA000)
-        else    -> Color(0xFF0C4C98)      // ltsBlue (light)
+        isDone -> Color(0xFF2ECC71)
+        isPaused -> Color(0xFFFFA000)
+        else -> Color(0xFF0C4C98)
     }
     val barBgColor = when {
         isError -> MaterialTheme.colorScheme.error.copy(alpha = 0.20f)
-        isPaused-> Color(0xFFFFA000).copy(alpha = 0.20f)
-        else    -> Color.Gray.copy(alpha = 0.14f)
+        isPaused -> Color(0xFFFFA000).copy(alpha = 0.20f)
+        else -> Color.Gray.copy(alpha = 0.14f)
     }
 
-    // Light blue for screen background
     val screenLightBlue = Color(0xFFF4F9FF)
 
-    // Temperatur-Anzeige wie in Swift (>=65°C kritisch)
     val tempC = status?.chipTemperatureC
     val tempCritical = (tempC ?: 0) >= 65
     val tempIconColor = when {
         tempC == null -> LocalContentColor.current
-        tempCritical  -> Color(0xFFD32F2F)
-        else          -> Color(0xFF2E7D32)
+        tempCritical -> Color(0xFFD32F2F)
+        else -> Color(0xFF2E7D32)
     }
 
     Box(
@@ -111,7 +99,6 @@ fun ContentScreen(
                 .fillMaxSize()
                 .imePadding()
         ) {
-            // Pills (TOP, fixed)
             PillRow(
                 isConnected = isConnected,
                 hasFilament = (status?.hasFilament == true) && isConnected,
@@ -119,7 +106,6 @@ fun ContentScreen(
                 tempIconTint = tempIconColor,
             )
 
-            // Spool (MIDDLE, flexible – fills available space)
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -128,14 +114,12 @@ fun ContentScreen(
                     .padding(top = 8.dp),
                 contentAlignment = Alignment.Center
             ) {
-                // --- Interactive rotation state (drag + physics + auto) ---
                 var rotation by remember { mutableFloatStateOf(0f) }
                 var angularVel by remember { mutableStateOf(0f) }
                 var isDragging by remember { mutableStateOf(false) }
                 var lastAngle by remember { mutableStateOf<Float?>(null) }
                 var boxSize by remember { mutableStateOf(IntSize.Zero) }
 
-                // Physics loop: inertia when released; auto-rotate when device runs
                 LaunchedEffect(deviceState) {
                     val maxVel = 15f
                     val friction = 0.992f
@@ -151,10 +135,9 @@ fun ContentScreen(
                             else -> 0f
                         }
 
-                        // If user is dragging, keep current angularVel (set by gestures)
                         angularVel = when {
                             isDragging -> angularVel
-                            kotlin.math.abs(angularVel) > 0.01f -> angularVel * friction
+                            abs(angularVel) > 0.01f -> angularVel * friction
                             else -> autoVel
                         }
 
@@ -163,14 +146,12 @@ fun ContentScreen(
                     }
                 }
 
-                // Gesture: one-finger drag to spin (angle around center)
                 val center by remember(boxSize) {
                     mutableStateOf(Offset(boxSize.width / 2f, boxSize.height / 2f))
                 }
-                fun angleAt(p: Offset): Float = Math.toDegrees(kotlin.math.atan2(
-                    (p.y - center.y).toDouble(),
-                    (p.x - center.x).toDouble()
-                )).toFloat()
+                fun angleAt(p: Offset): Float = Math.toDegrees(
+                    atan2((p.y - center.y).toDouble(), (p.x - center.x).toDouble())
+                ).toFloat()
                 val deadZoneRadiusPx = remember(boxSize) { (min(boxSize.width, boxSize.height) * 0.25f) }
 
                 TimelapseDisc(
@@ -181,10 +162,7 @@ fun ContentScreen(
                             detectDragGestures(
                                 onDragStart = { pos ->
                                     val d = (pos - center).getDistance()
-                                    if (d < deadZoneRadiusPx) {
-                                        // ignore drags starting in the hub
-                                        return@detectDragGestures
-                                    }
+                                    if (d < deadZoneRadiusPx) return@detectDragGestures
                                     isDragging = true
                                     lastAngle = angleAt(pos)
                                     angularVel = 0f
@@ -204,7 +182,7 @@ fun ContentScreen(
                                     if (delta > 180f) delta -= 360f
                                     if (delta < -180f) delta += 360f
                                     rotation = (rotation + delta) % 360f
-                                    angularVel = delta * 6f // scale for inertia feel
+                                    angularVel = delta * 6f
                                 }
                                 lastAngle = a
                                 change.consume()
@@ -213,7 +191,6 @@ fun ContentScreen(
                 )
             }
 
-            // Status & Controls (BOTTOM, fixed)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -229,15 +206,15 @@ fun ContentScreen(
                         AnimatedContent(
                             targetState = deviceState to remaining,
                             transitionSpec = { fadeIn(tween(180)) with fadeOut(tween(180)) }
-                        ) { (state, rem) ->
+                        ) { (state, _) ->
                             val text = when (state) {
-                                DeviceState.IDLE      -> "Leerlauf"
-                                DeviceState.RUNNING   -> "Läuft..."
-                                DeviceState.PAUSED    -> "Pausiert"
-                                DeviceState.AUTO_STOP -> "Auto-Stopp"
-                                DeviceState.UPDATING  -> "Wird aktualisiert..."
-                                DeviceState.DONE      -> "Fertig"
-                                DeviceState.ERROR     -> "Fehler"
+                                DeviceState.IDLE -> "空闲"
+                                DeviceState.RUNNING -> "运行中..."
+                                DeviceState.PAUSED -> "已暂停"
+                                DeviceState.AUTO_STOP -> "自动停止"
+                                DeviceState.UPDATING -> "正在更新..."
+                                DeviceState.DONE -> "完成"
+                                DeviceState.ERROR -> "错误"
                             }
                             Text(
                                 text = text,
@@ -294,7 +271,6 @@ private fun PillRow(
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            // Verbindung (links oben)
             Pill(
                 leading = {
                     val icon = if (isConnected) Symbols.Antenna else Symbols.AntennaSlash
@@ -305,11 +281,10 @@ private fun PillRow(
                         modifier = Modifier.size(22.dp)
                     )
                 },
-                title = "Verbindung",
-                subtitle = if (isConnected) "Verbunden" else "Getrennt",
+                title = "连接",
+                subtitle = if (isConnected) "已连接" else "未连接",
                 modifier = Modifier.weight(1f)
             )
-            // Temperatur (rechts oben)
             Pill(
                 leading = {
                     Icon(
@@ -319,13 +294,12 @@ private fun PillRow(
                         modifier = Modifier.size(22.dp)
                     )
                 },
-                title = "Temperatur",
+                title = "温度",
                 subtitle = tempLabel,
                 modifier = Modifier.weight(1f)
             )
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            // Filament (links unten)
             Pill(
                 leading = {
                     val ok = hasFilament
@@ -336,16 +310,15 @@ private fun PillRow(
                         modifier = Modifier.size(23.5.dp)
                     )
                 },
-                title = "Filament",
-                subtitle = if (hasFilament) "Erkannt" else "Nicht erkannt",
+                title = "耗材",
+                subtitle = if (hasFilament) "已检测" else "未检测",
                 modifier = Modifier.weight(1f)
             )
-            // Lüfter (rechts unten)
             Pill(
                 leading = {
                     Icon(Symbols.Fan, contentDescription = null, tint = LocalContentColor.current, modifier = Modifier.size(22.dp))
                 },
-                title = "Lüfter",
+                title = "风扇",
                 subtitle = "—",
                 modifier = Modifier.weight(1f)
             )
@@ -431,8 +404,7 @@ private fun ControlCard(
 ) {
     val controlBg = Color.White
     Card(
-        modifier = Modifier
-            .fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(
             topStart = 34.dp,
             topEnd = 34.dp,
@@ -449,12 +421,12 @@ private fun ControlCard(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 PillButton(
-                    text = if (isRunning) "Pause" else "Start",
+                    text = if (isRunning) "暂停" else "启动",
                     onClick = onStartOrPause,
                     modifier = Modifier.weight(1f)
                 )
                 PillButton(
-                    text = "Stopp",
+                    text = "停止",
                     onClick = onStop,
                     modifier = Modifier.weight(1f),
                     danger = true
@@ -462,18 +434,13 @@ private fun ControlCard(
             }
             Divider(Modifier.padding(vertical = 12.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                ) {
+                Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                     Slider(
                         value = speed.coerceIn(50f, 100f),
                         onValueChange = { onSpeedChange(it) },
                         valueRange = 50f..100f,
                         onValueChangeFinished = onSpeedChangeFinished,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(38.dp),
+                        modifier = Modifier.fillMaxWidth().height(38.dp),
                         colors = SliderDefaults.colors(
                             activeTrackColor = MaterialTheme.colorScheme.primary,
                             inactiveTrackColor = Color.Gray.copy(alpha = 0.14f),
@@ -535,10 +502,8 @@ private fun PillButton(
 /*                                 Utilities                                  */
 /* -------------------------------------------------------------------------- */
 
-
 @Composable
 private fun rememberSmoothRotation(targetRpm: Float): State<Float> {
-    // Physikalisch anmutende Glättung ähnlich deiner iOS-Timeline-Animation.  [oai_citation:0‡ContentView.rtf](sediment://file_000000005be861f5bdf817be07036721)
     val rotation = remember { mutableFloatStateOf(0f) }
     var angularVel by remember { mutableStateOf(0f) }
 
@@ -577,7 +542,7 @@ private fun formatSeconds(s: Int): String {
     return if (m > 0) "%d:%02d".format(m, r) else "${r}s"
 }
 
-/* Simple Symbol Aliases (Material Icons ersetzbar) */
+/* Simple Symbol Aliases */
 private object Symbols {
     val Antenna = Icons.DefaultSignal
     val AntennaSlash = Icons.DefaultSignalSlash
@@ -588,10 +553,9 @@ private object Symbols {
     val Fan = Icons.DefaultFan
 }
 
-/** Dummy vector icons – ersetze durch deine bevorzugte Icon-Lib (z.B. phosphor, lucide, material). */
 private object Icons {
     val DefaultSignal: ImageVector
-        get() = materialPathIcon { moveTo(0f,0f); lineTo(0f,0f) } // placeholder
+        get() = materialPathIcon { moveTo(0f,0f); lineTo(0f,0f) }
     val DefaultSignalSlash: ImageVector
         get() = materialPathIcon { moveTo(0f,0f); lineTo(0f,0f) }
     val DefaultCheck: ImageVector
@@ -611,7 +575,6 @@ private fun materialPathIcon(builder: androidx.compose.ui.graphics.vector.PathBu
         defaultWidth = 24.dp, defaultHeight = 24.dp,
         viewportWidth = 24f, viewportHeight = 24f
     ).apply {
-        // Minimaler, gültiger leerer Pfad – erzeugt ein neutrales Platzhalter-Icon
         path { moveTo(0f, 0f) }
     }.build()
 }
