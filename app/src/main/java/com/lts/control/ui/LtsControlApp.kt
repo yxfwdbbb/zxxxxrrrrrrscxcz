@@ -27,9 +27,9 @@ fun LtsControlApp(vm: BleViewModel) {
 
     val title = when (current) {
         Tab.Home -> "LTS Respooler"
-        Tab.Settings -> "Einstellungen"
-        Tab.Connection -> "Verbindung"
-        Tab.More -> "Mehr"
+        Tab.Settings -> "设置"
+        Tab.Connection -> "连接"
+        Tab.More -> "更多"
     }
 
     Scaffold(
@@ -54,28 +54,28 @@ fun LtsControlApp(vm: BleViewModel) {
                     selected = current == Tab.Home,
                     onClick = { current = Tab.Home },
                     icon = { Icon(Icons.Rounded.Home, null) },
-                    label = { Text("Steuerung") },
+                    label = { Text("控制") },
                     colors = navItemColors
                 )
                 NavigationBarItem(
                     selected = current == Tab.Settings,
                     onClick = { current = Tab.Settings },
                     icon = { Icon(Icons.Filled.Settings, null) },
-                    label = { Text("Einstellungen") },
+                    label = { Text("设置") },
                     colors = navItemColors
                 )
                 NavigationBarItem(
                     selected = current == Tab.Connection,
                     onClick = { current = Tab.Connection },
                     icon = { Icon(Icons.Filled.Wifi, null) },
-                    label = { Text("Verbindung") },
+                    label = { Text("连接") },
                     colors = navItemColors
                 )
                 NavigationBarItem(
                     selected = current == Tab.More,
                     onClick = { current = Tab.More },
                     icon = { Icon(Icons.Filled.MoreHoriz, null) },
-                    label = { Text("Mehr") },
+                    label = { Text("更多") },
                     colors = navItemColors
                 )
             }
@@ -92,13 +92,12 @@ fun LtsControlApp(vm: BleViewModel) {
     }
 }
 
-
-/* ------------------------------ Platzhalter Mehr --------------------------- */
+/* ------------------------------ 占位页面 --------------------------- */
 @Composable
 private fun AboutScreenPlaceholder() {
     Surface(Modifier.fillMaxSize()) {
         Text(
-            "Mehr (About) – kommt später",
+            "关于页面（待完善）",
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(16.dp)
         )
