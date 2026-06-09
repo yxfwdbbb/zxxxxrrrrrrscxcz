@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.ui.Modifier          // ✅ 关键：补上这个
 import androidx.lifecycle.ViewModelProvider
 import com.lts.control.core.ble.BleViewModel
 import com.lts.control.ui.LtsControlApp
@@ -27,7 +28,7 @@ class MainActivity : ComponentActivity() {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .systemBarsPadding() // 老 Compose 稳定支持
+                        .systemBarsPadding() // ✅ 老 Compose 稳定
                 ) {
                     LtsControlApp(vm)
                 }
