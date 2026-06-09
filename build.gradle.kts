@@ -1,19 +1,5 @@
-// 顶层构建文件
-buildscript {
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
-
+// 顶层构建文件 - 只声明插件，不配置仓库
 plugins {
     id("com.android.application") version "8.2.0" apply false
     id("org.jetbrains.kotlin.android") version "1.9.20" apply false
-}
-
-allprojects {
-    repositories {
-        google()
-        mavenCentral()
-    }
 }
