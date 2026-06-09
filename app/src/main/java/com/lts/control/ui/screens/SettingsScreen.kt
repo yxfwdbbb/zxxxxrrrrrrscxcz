@@ -83,7 +83,6 @@ fun SettingsScreen(
             val granted = context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
             if (!granted) requestNotifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         } else {
-            // Ältere Android-Versionen: aktiv ist gleich "erlaubt"
             notificationsOn = true
             prefs.notificationsEnabled = true
         }
@@ -129,7 +128,7 @@ fun SettingsScreen(
                 Icon(icon, contentDescription = null, tint = tint)
                 Spacer(Modifier.width(8.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("Status", style = MaterialTheme.typography.titleSmall)
+                    Text("状态", style = MaterialTheme.typography.titleSmall)
                     val subtitle = deviceStateLabel(deviceState)
                     AnimatedContent(
                         targetState = subtitle,
@@ -145,16 +144,16 @@ fun SettingsScreen(
             }
         }
 
-        /* -------------------------------- Konfiguration ------------------------------- */
-        SectionHeader("Konfiguration")
+        /* -------------------------------- 配置 ------------------------------- */
+        SectionHeader("配置")
         SettingsCard {
-            // Jingle
+            // 完成提示音
             RowSetting(
-                title = "Ton bei Fertigstellung",
+                title = "完成提示音",
                 trailing = {
                     var expanded by remember { mutableStateOf(false) }
                     val current = when (status?.jingleStyle ?: 0) {
-                        1 -> "Einfach"; 2 -> "Glissando"; 3 -> "Star Wars"; else -> "Aus"
+                        1 -> "简单"; 2 -> "滑音"; 3 -> "星球大战"; else -> "关闭"
                     }
                     Box {
                         Text(current, color = Color.Gray, modifier = Modifier
@@ -162,7 +161,7 @@ fun SettingsScreen(
                             .clickable { expanded = true }
                             .padding(horizontal = 8.dp, vertical = 4.dp))
                         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                            listOf(0 to "Aus", 1 to "Einfach", 2 to "Glissando", 3 to "Star Wars").forEach { (tag, label) ->
+                            listOf(0 to "关闭", 1 to "简单", 2 to "滑音", 3 to "星球大战").forEach { (tag, label) ->
                                 DropdownMenuItem(
                                     text = { Text(label) },
                                     onClick = {
@@ -177,11 +176,11 @@ fun SettingsScreen(
                 }
             )
 
-            // LED Helligkeit (0..100, Schritt 10)
+            // LED 亮度
             var ledLocal by remember { mutableStateOf((status?.ledBrightness ?: 50).toFloat()) }
             LaunchedEffect(status?.ledBrightness) { ledLocal = (status?.ledBrightness ?: 50).toFloat() }
             SliderRow(
-                title = "LED Helligkeit",
+                title = "LED 亮度",
                 valueText = "${ledLocal.toInt()} %",
                 value = ledLocal,
                 valueRange = 0f..100f,
@@ -190,37 +189,37 @@ fun SettingsScreen(
                 onFinish = { vm.setLed(ledLocal.toInt()) }
             )
 
-            // Respool-Menge (zeigt aktuelle Auswahl)
+            // 重绕数量
             RowSetting(
-                title = "Respool-Menge",
+                title = "重绕数量",
                 subtitle = targetWeightLabel(status?.targetWeight ?: 0),
                 clickable = true,
                 onClick = onOpenRespoolAmount
             )
 
-            // Filament Sensor
+            // 耗材传感器
             ToggleRow(
-                title = "Filament Sensor nutzen",
+                title = "启用耗材传感器",
                 checked = status?.useFilamentSensor ?: true,
                 onChecked = { vm.setFilamentSensor(it) }
             )
         }
-        SectionFooter("Wenn der Sensor deaktiviert ist, wird nicht auf den Verlust von Filament reagiert.")
+        SectionFooter("如果禁用传感器，将不会检测耗材耗尽。")
 
-        /* ----------------------------------- Motor ----------------------------------- */
-        SectionHeader("Motor")
+        /* ----------------------------------- 电机 ----------------------------------- */
+        SectionHeader("电机")
         SettingsCard {
             ToggleRow(
-                title = "Richtung umkehren",
+                title = "反转方向",
                 checked = (status?.motorDirection ?: 0) == 1,
                 onChecked = { on -> vm.setDirection(if (on) 1 else 0) }
             )
 
-            // Stärke 80..120 in 10er Schritten
+            // 力度 80..120
             var powLocal by remember { mutableStateOf((status?.motorStrength ?: 100).toFloat()) }
             LaunchedEffect(status?.motorStrength) { powLocal = (status?.motorStrength ?: 100).toFloat() }
             StepperRow(
-                title = "Stärke",
+                title = "力度",
                 valueText = "${powLocal.toInt()} %",
                 value = powLocal,
                 range = 80f..120f,
@@ -229,14 +228,14 @@ fun SettingsScreen(
                 onFinish = { vm.setMotorStrength(powLocal.toInt()) }
             )
 
-            // Auto-Stopp Empfindlichkeit (0..3)
+            // 自动停止灵敏度
             var tlLocal by remember { mutableStateOf((status?.torqueLimit ?: 0).toFloat()) }
             LaunchedEffect(status?.torqueLimit) { tlLocal = (status?.torqueLimit ?: 0).toFloat() }
             val hs = highSpeed
             PickerRow(
-                title = "Auto-Stopp Empfindlichkeit",
+                title = "自动停止灵敏度",
                 enabled = !hs,
-                currentLabel = when (tlLocal.toInt()) { 1 -> "Gering"; 2 -> "Mittel"; 3 -> "Hoch"; else -> "Aus" },
+                currentLabel = when (tlLocal.toInt()) { 1 -> "低"; 2 -> "中"; 3 -> "高"; else -> "关闭" },
                 onNext = {
                     val next = (tlLocal.toInt() + 1).coerceAtMost(3)
                     tlLocal = next.toFloat()
@@ -249,25 +248,25 @@ fun SettingsScreen(
                 }
             )
         }
-        SectionFooter("Der Auto-Stopp stoppt den Motor bei Widerstand.")
+        SectionFooter("自动停止会在遇到阻力时停止电机。")
 
-        /* -------------------------------- High-Speed --------------------------------- */
+        /* -------------------------------- 高速模式 --------------------------------- */
         SettingsCard {
             ToggleRow(
-                title = "High-Speed",
+                title = "高速模式",
                 checked = highSpeed,
                 onChecked = { vm.setHighSpeed(it) }
             )
         }
-        SectionFooter("Der High-Speed Modus erhöht die Geschwindigkeit des Motors. Auto-Stopp ist dabei nicht verfügbar.")
+        SectionFooter("高速模式会提高电机速度，此时自动停止不可用。")
 
-        /* ----------------------------------- Lüfter ---------------------------------- */
-        SectionHeader("Lüfter")
+        /* ----------------------------------- 风扇 ---------------------------------- */
+        SectionHeader("风扇")
         SettingsCard {
             var fanLocal by remember { mutableStateOf((status?.fanSpeed ?: 60).toFloat()) }
             LaunchedEffect(status?.fanSpeed) { fanLocal = (status?.fanSpeed ?: 60).toFloat() }
             StepperRow(
-                title = "Geschwindigkeit",
+                title = "速度",
                 valueText = "${fanLocal.toInt()} %",
                 value = fanLocal,
                 range = 10f..100f,
@@ -276,29 +275,29 @@ fun SettingsScreen(
                 onFinish = { vm.setFanSpeed(fanLocal.toInt()) }
             )
             ToggleRow(
-                title = "Lüfter immer an",
+                title = "风扇常开",
                 checked = status?.fanAlwaysOn ?: (status?.fanAlwaysOn == true),
                 onChecked = { vm.setFanAlways(it) }
             )
-            // Temperatur-Einheit (Segment)
+            // 温度单位
             SegmentedRow(
-                title = "Temperatur-Einheit",
-                options = listOf("Celsius", "Fahrenheit"),
+                title = "温度单位",
+                options = listOf("摄氏度", "华氏度"),
                 selectedIndex = if (showFahrenheit) 1 else 0
             ) { idx: Int ->
                 showFahrenheit = (idx == 1)
                 prefs.temperatureInFahrenheit = showFahrenheit
             }
         }
-        SectionFooter("Der Lüfter schaltet sich standardmäßig 10 Sekunden nach stoppen des Respoolers aus.")
+        SectionFooter("风扇默认在重绕器停止 10 秒后关闭。")
 
-        /* -------------------------------- Kalibrierung ------------------------------- */
-        SectionHeader("Kalibrierung")
+        /* -------------------------------- 校准 ------------------------------- */
+        SectionHeader("校准")
         SettingsCard {
             var durLocal by remember { mutableStateOf((status?.durationAt80 ?: 895).toFloat()) }
             LaunchedEffect(status?.durationAt80) { durLocal = (status?.durationAt80 ?: 895).toFloat() }
             StepperRow(
-                title = "Dauer",
+                title = "持续时间",
                 valueText = formatMinutesSeconds(durLocal.toInt()),
                 value = durLocal,
                 range = 5f..2000f,
@@ -307,13 +306,13 @@ fun SettingsScreen(
                 onFinish = { vm.setDurationAt80(durLocal.toInt()) }
             )
         }
-        SectionFooter("Für genauere Zeitangaben bzw. Respool-Mengen die benötigte Dauer für eine 1 kg Spule bei 80 % Geschwindigkeit messen und hier anpassen.")
+        SectionFooter("测量 1kg 耗材在 80% 速度下的所需时间并填入此处，以获得更准确的时间估算。")
 
         /* ------------------------------------- App ----------------------------------- */
-        SectionHeader("App")
+        SectionHeader("应用")
         SettingsCard {
             ToggleRow(
-                title = "Benachrichtigungen",
+                title = "通知",
                 checked = notificationsOn,
                 onChecked = { on ->
                     val ctx = context
@@ -326,7 +325,7 @@ fun SettingsScreen(
                 }
             )
         }
-        SectionFooter("Erhalte Push-Benachrichtigungen, wenn der Respooler stoppt oder fertig ist.")
+        SectionFooter("当重绕器停止或完成时接收推送通知。")
         Spacer(Modifier.height(18.dp))
     }
 }
@@ -345,10 +344,10 @@ fun RespoolAmountScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Respool-Menge") },
+                title = { Text("重绕数量") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Zurück")
+                        Icon(Icons.Filled.ArrowBack, contentDescription = "返回")
                     }
                 }
             )
@@ -359,21 +358,21 @@ fun RespoolAmountScreen(
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
         ) {
-            // Entire Spool
+            // 整卷
             SectionHeaderSpacer()
             SettingsCard {
                 SingleChoiceRow(
-                    title = "Gesamte Spule",
+                    title = "整卷",
                     selected = current == 0,
                     onClick = { if (current != 0) vm.setTargetWeight(0) }
                 )
             }
-            SectionFooter("Der Respooler stoppt anhand des Filament Sensors, sobald die obere Spule leer ist. Empfohlen, wenn Filament zwischen zwei 1 kg Spulen übertragen wird.")
+            SectionFooter("当上卷空卷时，重绕器会根据耗材传感器停止。适用于在两卷 1kg 耗材之间传输。")
 
-            // Fixed weights
+            // 固定重量
             SectionHeaderSpacer()
             SettingsCard {
-                listOf(1 to "1,0 kg", 2 to "0,5 kg", 3 to "0,25 kg").forEach { (tag, label) ->
+                listOf(1 to "1.0 kg", 2 to "0.5 kg", 3 to "0.25 kg").forEach { (tag, label) ->
                     SingleChoiceRow(
                         title = label,
                         selected = current == tag,
@@ -382,8 +381,8 @@ fun RespoolAmountScreen(
                 }
             }
             SectionFooter(
-                "Der Respooler stoppt anhand der übertragenen Menge. Empfohlen, wenn die obere Spule größer als 1 kg ist.\n\n" +
-                        "Das Stoppen funktioniert auf Basis des dynamisch berechneten Fortschritts. Die Genauigkeit kann je nach Material variieren."
+                "重绕器会根据传输量停止。适用于上卷大于 1kg 的情况。\n\n" +
+                        "停止基于动态计算的进度，精度可能因材料而异。"
             )
         }
     }
@@ -525,7 +524,6 @@ fun RespoolAmountScreen(
     Divider()
 }
 
-
 @Composable private fun PickerRow(
     title: String,
     enabled: Boolean,
@@ -597,27 +595,27 @@ fun RespoolAmountScreen(
 /* -------------------------------------------------------------------------- */
 
 private fun deviceStateLabel(state: DeviceState): String = when (state) {
-    DeviceState.IDLE      -> "Bereit"
-    DeviceState.RUNNING   -> "Läuft"
-    DeviceState.PAUSED    -> "Pausiert"
-    DeviceState.AUTO_STOP -> "Auto-Stopp"
-    DeviceState.UPDATING  -> "Wird aktualisiert…"
-    DeviceState.DONE      -> "Fertig"
-    DeviceState.ERROR     -> "Fehler"
+    DeviceState.IDLE      -> "空闲"
+    DeviceState.RUNNING   -> "运行中"
+    DeviceState.PAUSED    -> "已暂停"
+    DeviceState.AUTO_STOP -> "自动停止"
+    DeviceState.UPDATING  -> "正在更新…"
+    DeviceState.DONE      -> "完成"
+    DeviceState.ERROR     -> "错误"
 }
 
 private fun targetWeightLabel(tag: Int): String = when (tag) {
-    1 -> "1,0 kg"
-    2 -> "0,5 kg"
-    3 -> "0,25 kg"
-    else -> "Gesamte Spule"
+    1 -> "1.0 kg"
+    2 -> "0.5 kg"
+    3 -> "0.25 kg"
+    else -> "整卷"
 }
 
 private fun formatMinutesSeconds(seconds: Int): String {
     val s = seconds.coerceAtLeast(0)
     val m = s / 60
     val r = s % 60
-    return "Dauer: ${m}m ${r}s"
+    return "时长：${m}分${r}秒"
 }
 
 /* ---------------------------- Simple App Prefs ----------------------------- */
