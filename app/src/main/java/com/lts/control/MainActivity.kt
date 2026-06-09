@@ -6,7 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.lifecycle.ViewModelProvider
 import com.lts.control.core.ble.BleViewModel
 import com.lts.control.ui.LtsControlApp
@@ -27,7 +27,7 @@ class MainActivity : ComponentActivity() {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .safeDrawingPadding() // 修复手势导航 & 状态栏偏移
+                        .systemBarsPadding() // 老 Compose 稳定支持
                 ) {
                     LtsControlApp(vm)
                 }
