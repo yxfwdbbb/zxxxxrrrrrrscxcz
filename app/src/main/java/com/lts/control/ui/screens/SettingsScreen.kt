@@ -60,7 +60,8 @@ import kotlin.math.min
 @Composable
 fun SettingsScreen(
     vm: BleViewModel,
-    onOpenRespoolAmount: () -> Unit
+    onOpenRespoolAmount: () -> Unit,
+    onOpenServoCalibration: () -> Unit  // 新增舵机校准回调
 ) {
     val status by vm.status.collectAsState()
     val deviceState by vm.deviceState.collectAsState()
@@ -88,9 +89,6 @@ fun SettingsScreen(
         }
     }
 
-    val chipTemp = status?.chipTemperatureC
-    val tempCritical = (chipTemp ?: 0) >= 65
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -107,12 +105,12 @@ fun SettingsScreen(
             val (icon, tint) = when {
                 status == null -> Icons.Rounded.SignalCellularConnectedNoInternet0Bar to LocalContentColor.current.copy(alpha = 0.75f)
                 else -> when (deviceState) {
+                    DeviceState.IDLE      -> Icons.Rounded.PowerSettingsNew to Color(0xFF0C4C98)
                     DeviceState.RUNNING   -> Icons.Rounded.PlayCircle   to Color(0xFF2E7D32)
                     DeviceState.PAUSED    -> Icons.Rounded.PauseCircle  to Color(0xFFFFA000)
                     DeviceState.UPDATING  -> Icons.Rounded.SystemUpdateAlt to Color(0xFF3F51B5)
                     DeviceState.DONE      -> Icons.Filled.Check         to Color(0xFF2ECC71)
                     DeviceState.AUTO_STOP -> Icons.Rounded.Warning      to Color(0xFFD32F2F)
-                    DeviceState.IDLE,
                     DeviceState.ERROR     -> Icons.Rounded.PowerSettingsNew to Color(0xFF0C4C98)
                 }
             }
@@ -144,10 +142,10 @@ fun SettingsScreen(
             }
         }
 
-        /* -------------------------------- 配置 ------------------------------- */
+        /* -------------------------------- Konfiguration ------------------------------- */
         SectionHeader("配置")
         SettingsCard {
-            // 完成提示音
+            // Jingle
             RowSetting(
                 title = "完成提示音",
                 trailing = {
@@ -176,7 +174,7 @@ fun SettingsScreen(
                 }
             )
 
-            // LED 亮度
+            // LED Helligkeit (0..100, Schritt 10)
             var ledLocal by remember { mutableStateOf((status?.ledBrightness ?: 50).toFloat()) }
             LaunchedEffect(status?.ledBrightness) { ledLocal = (status?.ledBrightness ?: 50).toFloat() }
             SliderRow(
@@ -189,7 +187,7 @@ fun SettingsScreen(
                 onFinish = { vm.setLed(ledLocal.toInt()) }
             )
 
-            // 重绕数量
+            // Respool-Menge (zeigt aktuelle Auswahl)
             RowSetting(
                 title = "重绕数量",
                 subtitle = targetWeightLabel(status?.targetWeight ?: 0),
@@ -197,7 +195,7 @@ fun SettingsScreen(
                 onClick = onOpenRespoolAmount
             )
 
-            // 耗材传感器
+            // Filament Sensor
             ToggleRow(
                 title = "启用耗材传感器",
                 checked = status?.useFilamentSensor ?: true,
@@ -215,7 +213,7 @@ fun SettingsScreen(
                 onChecked = { on -> vm.setDirection(if (on) 1 else 0) }
             )
 
-            // 力度 80..120
+            // Stärke 80..120 in 10er Schritten
             var powLocal by remember { mutableStateOf((status?.motorStrength ?: 100).toFloat()) }
             LaunchedEffect(status?.motorStrength) { powLocal = (status?.motorStrength ?: 100).toFloat() }
             StepperRow(
@@ -228,7 +226,7 @@ fun SettingsScreen(
                 onFinish = { vm.setMotorStrength(powLocal.toInt()) }
             )
 
-            // 自动停止灵敏度
+            // Auto-Stopp Empfindlichkeit (0..3)
             var tlLocal by remember { mutableStateOf((status?.torqueLimit ?: 0).toFloat()) }
             LaunchedEffect(status?.torqueLimit) { tlLocal = (status?.torqueLimit ?: 0).toFloat() }
             val hs = highSpeed
@@ -246,6 +244,14 @@ fun SettingsScreen(
                     tlLocal = prev.toFloat()
                     vm.setTorque(prev)
                 }
+            )
+
+            // ✅ 新增：舵机校准
+            RowSetting(
+                title = "舵机校准",
+                subtitle = "设置舵机左右极限位置",
+                clickable = true,
+                onClick = onOpenServoCalibration
             )
         }
         SectionFooter("自动停止会在遇到阻力时停止电机。")
@@ -279,7 +285,7 @@ fun SettingsScreen(
                 checked = status?.fanAlwaysOn ?: (status?.fanAlwaysOn == true),
                 onChecked = { vm.setFanAlways(it) }
             )
-            // 温度单位
+            // Temperatur-Einheit (Segment)
             SegmentedRow(
                 title = "温度单位",
                 options = listOf("摄氏度", "华氏度"),
@@ -358,7 +364,7 @@ fun RespoolAmountScreen(
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
         ) {
-            // 整卷
+            // Entire Spool
             SectionHeaderSpacer()
             SettingsCard {
                 SingleChoiceRow(
@@ -369,7 +375,7 @@ fun RespoolAmountScreen(
             }
             SectionFooter("当上卷空卷时，重绕器会根据耗材传感器停止。适用于在两卷 1kg 耗材之间传输。")
 
-            // 固定重量
+            // Fixed weights
             SectionHeaderSpacer()
             SettingsCard {
                 listOf(1 to "1.0 kg", 2 to "0.5 kg", 3 to "0.25 kg").forEach { (tag, label) ->
